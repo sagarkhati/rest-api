@@ -1,8 +1,14 @@
 package com.sagarkhati.restapi.controller;
 
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
+
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.hateoas.CollectionModel;
+import org.springframework.hateoas.EntityModel;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -21,13 +27,23 @@ public class EmployeeController {
 	EmployeeService empService;
 
 	@GetMapping("/employee/{id}")
-	public Employee getEmployee(@PathVariable int id) {
-		return empService.getEmployee(id);
+	public EntityModel<Employee> getEmployee(@PathVariable int id) {
+		Employee emp = empService.getEmployee(id);
+
+		return EntityModel.of(emp, linkTo(methodOn(EmployeeController.class).getEmployee(id)).withSelfRel(),
+				linkTo(methodOn(EmployeeController.class).getAllEmployee()).withRel("employees"));
 	}
 
 	@GetMapping("/employees")
-	public List<Employee> getAllEmployee() {
-		return empService.getAllEmployee();
+	public CollectionModel<EntityModel<Employee>> getAllEmployee() {
+		List<Employee> employees = empService.getAllEmployee();
+
+		List<EntityModel<Employee>> emps = employees.stream()
+				.map(employee -> EntityModel.of(employee,
+						linkTo(methodOn(EmployeeController.class).getEmployee(employee.getEmpId())).withSelfRel()))
+				.collect(Collectors.toList());
+
+		return CollectionModel.of(emps, linkTo(methodOn(EmployeeController.class).getAllEmployee()).withSelfRel());
 	}
 
 	@PostMapping("/employees")
